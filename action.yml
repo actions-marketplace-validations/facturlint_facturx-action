@@ -1,0 +1,58 @@
+name: "FacturLint Factur-X & BR-FR-CTC Audit"
+description: "Stateless Factur-X 1.09.2, EN 16931 & French BR-FR-CTC electronic invoice validation and repair."
+author: "FacturLint"
+
+branding:
+  icon: "check-circle"
+  color: "blue"
+
+inputs:
+  files:
+    description: "Glob pattern or file path of invoices to audit (e.g. 'invoices/**/*.pdf' or 'facture.pdf')"
+    required: false
+    default: "**/*.pdf"
+  api_key:
+    description: "FacturLint API Key (optional for free stateless validation, required for auto-repair)"
+    required: false
+    default: ""
+  fail_on_warning:
+    description: "Fail the workflow if warning-level issues are detected (default: false)"
+    required: false
+    default: "false"
+  auto_repair:
+    description: "Automatically attempt envelope repair on defective PDF/A-3b files (requires api_key)"
+    required: false
+    default: "false"
+  base_url:
+    description: "FacturLint API base URL"
+    required: false
+    default: "https://facturlint.com"
+
+outputs:
+  total_scanned:
+    description: "Total number of invoice files scanned"
+    value: ${{ steps.run_audit.outputs.total_scanned }}
+  total_compliant:
+    description: "Total number of compliant invoices"
+    value: ${{ steps.run_audit.outputs.total_compliant }}
+  total_issues:
+    description: "Total number of diagnostic issues detected"
+    value: ${{ steps.run_audit.outputs.total_issues }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: run_audit
+      shell: bash
+      env:
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_API_KEY: ${{ inputs.api_key }}
+        INPUT_FAIL_ON_WARNING: ${{ inputs.fail_on_warning }}
+        INPUT_AUTO_REPAIR: ${{ inputs.auto_repair }}
+        INPUT_BASE_URL: ${{ inputs.base_url }}
+      run: |
+        if command -v python3 >/dev/null 2>&1; then
+          python3 "${{ github.action_path }}/audit_action.py"
+        else
+          python "${{ github.action_path }}/audit_action.py"
+        fi
